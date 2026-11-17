@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>E1 Sparepart Control</title>
+<meta name="theme-color" content="#151b1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="E1 Sparepart">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+html,body{margin:0;height:100%;background:#151b1a;overflow:hidden}
+#app{position:fixed;top:0;left:0;width:100%;height:100%;border:0;display:block;background:#151b1a}
+#probe{position:fixed;top:0;left:0;width:0;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none}
+#ld{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#e6cba8;font:600 15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+#ld img{width:84px;height:84px;border-radius:22px}
+</style>
+</head>
+<body>
+<div id="probe"></div>
+<div id="ld"><img src="icons/icon-192.png" alt=""><span>E1 Sparepart Control</span></div>
+<iframe id="app" title="E1 Sparepart Control" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
+<script>
+// Link of the Apps Script web app (Deploy > Manage deployments > Web app URL, ends with /exec)
+var APP_LINK = 'PASTE_THE_EXEC_LINK_HERE';
+
+(function () {
+  var cs = getComputedStyle(document.getElementById('probe'));
+  var top = Math.round(parseFloat(cs.paddingTop) || 0), bottom = Math.round(parseFloat(cs.paddingBottom) || 0);
+  var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  var sep = APP_LINK.indexOf('?') < 0 ? '?' : '&';
+  var f = document.getElementById('app');
+  f.onload = function () { document.getElementById('ld').style.display = 'none'; };
+  f.src = APP_LINK + sep + 'pwa=1&sat=' + top + '&sab=' + bottom + '&sa=' + (standalone ? 1 : 0);
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+})();
+</script>
+</body>
+</html>
