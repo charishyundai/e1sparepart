@@ -13,7 +13,7 @@
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
-html,body{margin:0;height:100%;background:#151b1a;overflow:hidden}
+html,body{margin:0;height:100%;min-height:100vh;background:#151b1a;overflow:hidden}
 #app{position:fixed;top:0;left:0;width:100%;height:100%;border:0;display:block;background:#151b1a}
 #probe{position:fixed;top:0;left:0;width:0;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none}
 #ld{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#e6cba8;font:600 15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
@@ -29,13 +29,42 @@ html,body{margin:0;height:100%;background:#151b1a;overflow:hidden}
 var APP_LINK = 'https://script.google.com/macros/s/AKfycbx2C5StSOynhII3iDyZevmu-_x-Q5MVUHYs47AUHS7s668LEdaCqpMwFG8xhFqDFZV0/exec';
 
 (function () {
-  var cs = getComputedStyle(document.getElementById('probe'));
-  var top = Math.round(parseFloat(cs.paddingTop) || 0), bottom = Math.round(parseFloat(cs.paddingBottom) || 0);
+  var f = document.getElementById('app'), probe = document.getElementById('probe');
+  var iOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
   var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  var asker = null, last = '';
+  function insets() {
+    var cs = getComputedStyle(probe);
+    var t = Math.round(parseFloat(cs.paddingTop) || 0), b = Math.round(parseFloat(cs.paddingBottom) || 0);
+    var portrait = window.innerHeight >= window.innerWidth;
+    // iPhone installed app: Safari sometimes reports 0 at first; use the usual notch size instead
+    if (iOS && standalone && portrait && t === 0) {
+      var big = Math.max(screen.height, screen.width) >= 812;
+      t = big ? 48 : 20;
+      if (big && b === 0) b = 34;
+    }
+    return { t: t, b: b, sa: standalone ? 1 : 0 };
+  }
+  function fit() {
+    var h = window.innerHeight;
+    // iPhone installed app: the page height can come out one status bar too short, leaving a gap at the bottom
+    if (iOS && standalone && window.innerHeight >= window.innerWidth) h = Math.max(h, screen.height);
+    f.style.height = h + 'px';
+    document.body.style.height = h + 'px';
+    var v = insets(), key = v.t + ',' + v.b;
+    if (asker && key !== last) { last = key; try { asker.postMessage({ e1ins: v }, '*'); } catch (e) {} }
+    return v;
+  }
+  window.addEventListener('message', function (e) {
+    if (e.data && e.data.e1ask) { asker = e.source; last = ''; fit(); }
+  });
+  window.addEventListener('resize', function () { setTimeout(fit, 60); });
+  window.addEventListener('orientationchange', function () { setTimeout(fit, 300); });
+  var v = fit();
+  setTimeout(fit, 400); setTimeout(fit, 1500);
   var sep = APP_LINK.indexOf('?') < 0 ? '?' : '&';
-  var f = document.getElementById('app');
-  f.onload = function () { document.getElementById('ld').style.display = 'none'; };
-  f.src = APP_LINK + sep + 'pwa=1&sat=' + top + '&sab=' + bottom + '&sa=' + (standalone ? 1 : 0);
+  f.onload = function () { document.getElementById('ld').style.display = 'none'; fit(); };
+  f.src = APP_LINK + sep + 'pwa=1&sat=' + v.t + '&sab=' + v.b + '&sa=' + v.sa;
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
 })();
 </script>
