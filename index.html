@@ -26,7 +26,7 @@ html,body{margin:0;height:100%;min-height:100vh;background:#151b1a;overflow:hidd
 <iframe id="app" title="E1 Sparepart Control" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
 <script>
 // Link of the Apps Script web app (Deploy > Manage deployments > Web app URL, ends with /exec)
-var APP_LINK = 'https://script.google.com/macros/s/AKfycbx2C5StSOynhII3iDyZevmu-_x-Q5MVUHYs47AUHS7s668LEdaCqpMwFG8xhFqDFZV0/exec';
+var APP_LINK = 'https:/'+'/script.google.com/macros/s/AKfycbx2C5StSOynhII3iDyZevmu-_x-Q5MVUHYs47AUHS7s668LEdaCqpMwFG8xhFqDFZV0/exec';
 
 (function () {
   var f = document.getElementById('app'), probe = document.getElementById('probe');
@@ -57,6 +57,17 @@ var APP_LINK = 'https://script.google.com/macros/s/AKfycbx2C5StSOynhII3iDyZevmu-
   }
   window.addEventListener('message', function (e) {
     if (e.data && e.data.e1ask) { asker = e.source; last = ''; fit(); }
+    if (e.data && e.data.e1share) {
+      // the app asks to share a file (e.g. the OIT Excel) with the phone's share sheet
+      var d = e.data.e1share, src = e.source;
+      var reply = function (o) { o.id = d.id; try { src.postMessage({ e1shared: o }, '*'); } catch (x) {} };
+      try {
+        var file = new File([d.buf], d.name, { type: d.type || 'application/octet-stream' });
+        if (!(navigator.canShare && navigator.canShare({ files: [file] }))) { reply({ ok: 0, msg: 'not supported' }); return; }
+        navigator.share({ files: [file], title: d.name }).then(function () { reply({ ok: 1 }); })
+          .catch(function (err) { reply({ ok: 0, abort: err && err.name === 'AbortError' ? 1 : 0, msg: String(err && err.message || err) }); });
+      } catch (err) { reply({ ok: 0, msg: String(err && err.message || err) }); }
+    }
   });
   window.addEventListener('resize', function () { setTimeout(fit, 60); });
   window.addEventListener('orientationchange', function () { setTimeout(fit, 300); });
