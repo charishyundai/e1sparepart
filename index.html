@@ -57,6 +57,18 @@ var APP_LINK = 'https:/'+'/script.google.com/macros/s/AKfycbx2C5StSOynhII3iDyZev
   }
   window.addEventListener('message', function (e) {
     if (e.data && e.data.e1ask) { asker = e.source; last = ''; fit(); }
+    if (e.data && e.data.e1fsAsk) {
+      // the app asks whether this window can go full screen (hide the title bar, taskbar and browser bars)
+      var de = document.documentElement, can = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+      try { e.source.postMessage({ e1fsCap: can ? 1 : 0, e1fsState: !!(document.fullscreenElement || document.webkitFullscreenElement) }, '*'); } catch (x) {}
+    }
+    if (e.data && 'e1fs' in e.data) {
+      var el = document.documentElement;
+      try {
+        if (e.data.e1fs) { var p = (el.requestFullscreen || el.webkitRequestFullscreen).call(el, { navigationUI: 'hide' }); if (p && p.catch) p.catch(function () {}); }
+        else if (document.fullscreenElement || document.webkitFullscreenElement) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); }
+      } catch (x) {}
+    }
     if (e.data && e.data.e1share) {
       // the app asks to share a file (e.g. the OIT Excel) with the phone's share sheet
       var d = e.data.e1share, src = e.source;
@@ -68,6 +80,12 @@ var APP_LINK = 'https:/'+'/script.google.com/macros/s/AKfycbx2C5StSOynhII3iDyZev
           .catch(function (err) { reply({ ok: 0, abort: err && err.name === 'AbortError' ? 1 : 0, msg: String(err && err.message || err) }); });
       } catch (err) { reply({ ok: 0, msg: String(err && err.message || err) }); }
     }
+  });
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(function (t) {
+    document.addEventListener(t, function () {
+      var on = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      if (asker) { try { asker.postMessage({ e1fsState: on }, '*'); } catch (x) {} }
+    });
   });
   window.addEventListener('resize', function () { setTimeout(fit, 60); });
   window.addEventListener('orientationchange', function () { setTimeout(fit, 300); });
