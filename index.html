@@ -93,8 +93,10 @@ var APP_LINK = 'https:/'+'/script.google.com/macros/s/AKfycbx2C5StSOynhII3iDyZev
   setTimeout(fit, 400); setTimeout(fit, 1500);
   var sep = APP_LINK.indexOf('?') < 0 ? '?' : '&';
   f.onload = function () { document.getElementById('ld').style.display = 'none'; fit(); };
-  f.src = APP_LINK + sep + 'pwa=1&sat=' + v.t + '&sab=' + v.b + '&sa=' + v.sa;
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+  // signing link for customers (BAST / BAPP): ?sign=... is passed on to the app
+  var sg = (location.search.match(/[?&]sign=([a-f0-9]{24,40})/) || [])[1] || '';
+  f.src = APP_LINK + sep + 'pwa=1&sat=' + v.t + '&sab=' + v.b + '&sa=' + v.sa + (sg ? '&sign=' + sg : '');
+  if (!sg && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
 })();
 </script>
 </body>
