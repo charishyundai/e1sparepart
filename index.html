@@ -81,6 +81,30 @@ var APP_LINK = 'https:/'+'/script.google.com/macros/s/AKfycbx2C5StSOynhII3iDyZev
       } catch (err) { reply({ ok: 0, msg: String(err && err.message || err) }); }
     }
   });
+  // ---------- install the app: tell the app whether this page can be installed, and install when the app asks ----------
+  var bip = null, instAsker = null, instDone = 0;
+  function instSend(extra) {
+    if (!instAsker) return;
+    var o = { sa: standalone ? 1 : 0, can: bip ? 1 : 0, done: instDone };
+    if (extra) for (var k in extra) o[k] = extra[k];
+    try { instAsker.postMessage({ e1inst: o }, '*'); } catch (x) {}
+  }
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); bip = e; instSend(); });
+  window.addEventListener('appinstalled', function () { bip = null; instDone = 1; instSend(); });
+  window.addEventListener('message', function (e) {
+    if (!e.data) return;
+    if (e.data.e1instAsk) { instAsker = e.source; instSend(); }
+    if (e.data.e1instGo) {
+      instAsker = e.source;
+      if (!bip) { instSend({ res: 'none' }); return; }
+      var p = bip; bip = null;
+      try {
+        p.prompt();
+        p.userChoice.then(function (c) { if (c && c.outcome === 'accepted') instDone = 1; instSend({ res: c && c.outcome || 'dismissed' }); })
+          .catch(function () { instSend({ res: 'dismissed' }); });
+      } catch (x) { instSend({ res: 'dismissed' }); }
+    }
+  });
   ['fullscreenchange', 'webkitfullscreenchange'].forEach(function (t) {
     document.addEventListener(t, function () {
       var on = !!(document.fullscreenElement || document.webkitFullscreenElement);
